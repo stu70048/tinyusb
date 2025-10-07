@@ -1,0 +1,4 @@
+[submodule "hw/mcu/m55m1"]
+	path = hw/mcu/m55m1
+	url = https://github.com/stu70048/M55M1BSP.git
+	branch = lwlib
