@@ -117,8 +117,8 @@
   #define TUP_RHPORT_HIGHSPEED    1
 
   #if __CORTEX_M == 7
-  #define CFG_TUD_MEM_DCACHE_ENABLE_DEFAULT        1
-  #define CFG_TUH_MEM_DCACHE_ENABLE_DEFAULT        1
+  #define CFG_TUD_MEM_DCACHE_ENABLE_DEFAULT  1
+  #define CFG_TUH_MEM_DCACHE_ENABLE_DEFAULT  1
   #define CFG_TUSB_MEM_DCACHE_LINE_SIZE_DEFAULT   32
   #endif
 
@@ -384,6 +384,10 @@
   #define TUP_DCD_ENDPOINT_MAX    12
   #define TUP_RHPORT_HIGHSPEED    1
 
+#elif TU_CHECK_MCU(OPT_MCU_M55x)
+  #define TUP_DCD_ENDPOINT_MAX    18 // FS 25 ep, HS 18 ep
+  #define TUP_RHPORT_HIGHSPEED    1  // port0 FS, port1 HS
+
 //--------------------------------------------------------------------+
 // Espressif
 //--------------------------------------------------------------------+
@@ -416,8 +420,8 @@
   #define CFG_TUH_DWC2_SLAVE_ENABLE_DEFAULT  !CFG_TUH_DWC2_DMA_ENABLE
 
   // Enable dcache if DMA is enabled
-  #define CFG_TUD_MEM_DCACHE_ENABLE_DEFAULT      CFG_TUD_DWC2_DMA_ENABLE
-  #define CFG_TUH_MEM_DCACHE_ENABLE_DEFAULT      CFG_TUH_DWC2_DMA_ENABLE
+  #define CFG_TUD_MEM_DCACHE_ENABLE_DEFAULT  CFG_TUD_DWC2_DMA_ENABLE
+  #define CFG_TUH_MEM_DCACHE_ENABLE_DEFAULT  CFG_TUH_DWC2_DMA_ENABLE
   #define CFG_TUSB_MEM_DCACHE_LINE_SIZE_DEFAULT  64
 
 #elif TU_CHECK_MCU(OPT_MCU_ESP32, OPT_MCU_ESP32C2, OPT_MCU_ESP32C3, OPT_MCU_ESP32C5, OPT_MCU_ESP32C6, OPT_MCU_ESP32C61, OPT_MCU_ESP32H2)
@@ -614,7 +618,7 @@
       defined(AT32F405RBT7_7) || defined(AT32F405RBT7) ||   \
       defined(AT32F405RCT7_7) || defined(AT32F405RCT7)
     #define TUP_RHPORT_HIGHSPEED  1 // Port0: FS, Port1: HS
-  #endif
+#endif
 
 #elif TU_CHECK_MCU(OPT_MCU_AT32F425)
   #define TUP_USBIP_DWC2

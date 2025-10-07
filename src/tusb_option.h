@@ -119,6 +119,7 @@
 #define OPT_MCU_NUC126            801
 #define OPT_MCU_NUC120            802
 #define OPT_MCU_NUC505            803
+#define OPT_MCU_M55x              850
 
 // Espressif
 #define OPT_MCU_ESP32S2           900 ///< Espressif ESP32-S2
@@ -441,7 +442,7 @@
 
 // OS selection
 #ifndef CFG_TUSB_OS
-  #define CFG_TUSB_OS           OPT_OS_NONE
+  #define CFG_TUSB_OS             OPT_OS_NONE
 #endif
 
 #ifndef CFG_TUSB_OS_INC_PATH
