@@ -212,19 +212,13 @@ static void dcd_userEP_in_xfer(struct xfer_ctl_t *xfer, HSUSBD_EP_T *ep)
     else
 #endif
     {
-        uint16_t countdown = bytes_now;
+        uint16_t count = 0;
 
-        while (countdown > 3)
-        {
-            uint32_t u32;
-            memcpy(&u32, xfer->data_ptr, 4);
+        for (; count + 4 <= bytes_now; xfer->data_ptr += 4, count += 4)
+            ep->EPDAT = *(uint32_t *)xfer->data_ptr;
 
-            ep->EPDAT = u32;
-            xfer->data_ptr += 4;
-            countdown -= 4;
-        }
-
-        while (countdown--) ep->EPDAT_BYTE = *xfer->data_ptr++;
+        for (; count < bytes_now; xfer->data_ptr++, count++)
+            ep->EPDAT_BYTE = *xfer->data_ptr;
     }
 
     /* for short packets, we must nudge the peripheral to say 'that's all folks' */
@@ -389,6 +383,7 @@ bool dcd_edpt_open(uint8_t rhport, tusb_desc_endpoint_t const * p_endpoint_desc)
 void dcd_edpt_close(uint8_t rhport, uint8_t ep_addr)
 {
     (void) rhport;
+    (void) ep_addr;
     // TODO implement dcd_edpt_close()
 }
 
@@ -577,6 +572,10 @@ void dcd_int_handler(uint8_t rhport)
                 /* if the most recent DMA finishes the transfer, alert TinyUSB; otherwise, the next RXPKIF/INTKIF endpoint interrupt will prompt the next DMA */
                 if ((current_dma_xfer->total_bytes == current_dma_xfer->out_bytes_so_far) || (available_bytes < current_dma_xfer->max_packet_size))
                 {
+#if (NVT_DCACHE_ON == 1)
+                    /* Invalidate the cache to allow the CPU to access the latest data. */
+                    SCB_InvalidateDCache_by_Addr((uint8_t *)current_dma_xfer->data_ptr, DCACHE_ALIGN_LINE_SIZE(current_dma_xfer->total_bytes));
+#endif
                     dcd_event_xfer_complete(0, current_dma_xfer->ep_addr, current_dma_xfer->out_bytes_so_far, XFER_RESULT_SUCCESS, true);
                 }
 
@@ -717,7 +716,10 @@ void dcd_int_handler(uint8_t rhport)
                 if (out_ep)
                 {
 #if USE_DMA
-                    ep->EPINTEN = 0;
+
+                    if ((ep->EPCFG & HSUSBD_EP_CFG_TYPE_MASK) != eprspctl_eptype_table[TUSB_XFER_ISOCHRONOUS])
+                        ep->EPINTEN = 0;
+
                     xfer->dma_requested = true;
                     service_dma();
 #else
@@ -734,7 +736,7 @@ void dcd_int_handler(uint8_t rhport)
                     {
                         ep->EPINTEN = 0;
 
-                        for (int count = 0; ((count + 4 <= available_bytes)) && ((xfer->out_bytes_so_far + 4) <= xfer->total_bytes); count += 4, xfer->out_bytes_so_far += 4, xfer->data_ptr += 4)
+                        for (int count = 0; ((count + 4) <= available_bytes) && ((xfer->out_bytes_so_far + 4) <= xfer->total_bytes); count += 4, xfer->out_bytes_so_far += 4, xfer->data_ptr += 4)
                         {
                             *(uint32_t *)xfer->data_ptr = ep->EPDAT;
                         }
