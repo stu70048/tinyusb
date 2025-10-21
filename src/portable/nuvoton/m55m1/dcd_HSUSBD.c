@@ -46,7 +46,7 @@
  * transfer lengths that are longer (> 64 bytes) and are not a multiple of 4.
  * Keep disabled for now.
  */
-#define USE_DMA     0
+#define USE_DMA     1
 
 /* rather important info unfortunately not provided by device include files */
 #if TU_CHECK_MCU(OPT_MCU_M55x)
@@ -591,7 +591,7 @@ void dcd_int_handler(uint8_t rhport)
       {
         /* USB disconnect */
         HSUSBD->PHYCTL &= ~HSUSBD_PHYCTL_DPPUEN_Msk;
-          HSUSBD->OPER &= ~HSUSBD_OPER_HISHSEN_Msk;
+        HSUSBD->OPER &= ~HSUSBD_OPER_HISHSEN_Msk;
       }
     }
 
@@ -699,6 +699,7 @@ void dcd_int_handler(uint8_t rhport)
         if (out_ep)
         {
 #if USE_DMA
+          ep->EPINTEN =0;
           xfer->dma_requested = true;
           service_dma();
 #else
@@ -712,12 +713,19 @@ void dcd_int_handler(uint8_t rhport)
           else
 #endif
           {
-            for (int count = 0; (count < available_bytes) && (xfer->out_bytes_so_far < xfer->total_bytes); count++, xfer->out_bytes_so_far++)
-            {
-              *xfer->data_ptr++ = ep->EPDAT_BYTE;
-            }
-          }
+            ep->EPINTEN =0;
 
+            for (int count = 0; ((count+4 <= available_bytes)) && ((xfer->out_bytes_so_far+4) <= xfer->total_bytes); count+=4, xfer->out_bytes_so_far+=4,xfer->data_ptr+=4)
+            {
+              *(uint32_t *)xfer->data_ptr = ep->EPDAT;
+            }
+            
+            for (int count = 0; (count < available_bytes) && (xfer->out_bytes_so_far < xfer->total_bytes); count++, xfer->out_bytes_so_far++,xfer->data_ptr++)
+            {
+              *xfer->data_ptr = ep->EPDAT_BYTE;
+            }
+            
+          }
           /* when the transfer is finished, alert TinyUSB; otherwise, continue accepting more data */
           if ( (xfer->total_bytes == xfer->out_bytes_so_far) || (available_bytes < xfer->max_packet_size) )
           {
@@ -733,9 +741,9 @@ void dcd_int_handler(uint8_t rhport)
         }
         else if (ep_state & HSUSBD_EPINTSTS_TXPKIF_Msk)
         {
+          ep->EPINTEN = 0;
           /* alert TinyUSB that we've finished */
           dcd_event_xfer_complete(0, ep_addr, xfer->total_bytes, XFER_RESULT_SUCCESS, true);
-          ep->EPINTEN = 0;
         }
 
         ep->EPINTSTS = ep_state;
